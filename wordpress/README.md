@@ -22,4 +22,4 @@ post install you can easily run the EFF CertBot to get a valid SSL certificate
 ```
 then follow the prompts...
 
-You should be able to access your site via https://<fqdn or IP>
+You should be able to access your site via https://fqdn or IP
