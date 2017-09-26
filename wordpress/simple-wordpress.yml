@@ -1,0 +1,233 @@
+---
+- hosts: wordpress
+
+  tasks:
+
+  - name: Install Python SETools Library
+    yum:
+      name: libsemanage-python
+      state: present
+    become: true
+    become_method: sudo
+
+  - name: Configure SELinux for httpd_can_network_connect_db
+    seboolean:
+      name: httpd_can_network_connect_db
+      state: yes
+      persistent: yes
+    become: true
+    become_method: sudo
+
+  - firewalld:
+      zone: dmz
+      service: http
+      permanent: true
+      state: enabled
+      immediate: true
+    become: true
+    become_method: sudo
+
+  - firewalld:
+      zone: dmz
+      service: https
+      permanent: true
+      state: enabled
+      immediate: true
+    become: true
+    become_method: sudo
+
+  - name: Change active Firewall Zone
+    command: /usr/bin/firewall-cmd --set-default-zone=dmz
+    become: true
+    become_method: sudo
+    notify:
+      - reloadFirewalld
+
+  - name: Install MariaDB (MySQL)
+    yum:
+      name: mariadb-server
+      state: present
+    become: true
+    become_method: sudo
+
+  - name: Install MariaDB Dev library
+    yum:
+      name: mariadb-devel
+      state: present
+    become: true
+    become_method: sudo
+
+  - name: Install Python Devel
+    yum:
+      name: python-devel
+      state: present
+    become: true
+    become_method: sudo
+
+  - name: Install gcc
+    yum:
+      name: gcc
+      state: present
+    become: true
+    become_method: sudo
+
+  - name: Install pip
+    yum:
+      name: python2-pip
+      state: present
+    become: true
+    become_method: sudo
+
+  - name: Install mysqldb python module
+    pip:
+      name: MySQL-python
+    become: true
+    become_method: sudo
+
+  - name: Start MariaDB
+    service:
+      name: mariadb
+      state: started
+      enabled: yes
+    become: true
+    become_method: sudo
+
+  - name: Configure Database
+    mysql_db:
+      login_user: root
+      name: "{{ db_name }}"
+      state: present
+    ignore_errors: yes
+
+  - name: Configure DB User
+    mysql_user:
+      login_user: root
+      name: "{{ db_user }}"
+      password: "{{ db_pass }}"
+      priv: "{{ db_name }}.*:ALL"
+      state: present
+    ignore_errors: yes
+
+  - name: Change root@localhost password
+    mysql_user:
+      login_user: root
+      name: root
+      password: "{{ db_root_pass }}"
+    ignore_errors: yes
+
+  - name: Remove MariaDB anonymous access
+    mysql_user:
+      login_user: root
+      login_password: "{{ db_root_pass }}"
+      name: ''
+      host_all: yes
+      state: absent
+    ignore_errors: yes
+
+  - name: Mark DB Configuration Complete
+    command: echo '0' > /var/lib/mysql/.ansible_complete
+
+  - name: Install Apache
+    yum:
+      name: httpd
+      state: present
+    become: true
+    become_method: sudo
+
+  - name: Install PHP
+    yum:
+      name: php
+      state: present
+    become: true
+    become_method: sudo
+
+  - name: Install PHP-gd
+    yum:
+      name: php-gd
+      state: present
+    become: true
+    become_method: sudo
+
+  - name: Install MySQL PHP plugin
+    yum:
+      name: php-mysql
+      state: present
+    become: true
+    become_method: sudo
+
+  - name: Install EFF Let's Encrypt Certbot
+    yum:
+      name: certbot-apache
+      state: present
+    become: true
+    become_method: sudo
+
+  - name: Download wordpress
+    get_url:
+      url: http://wordpress.org/latest.tar.gz
+      dest: /tmp/latest.tar.gz
+
+  - name: Extract wordpress
+    unarchive:
+      src: /tmp/latest.tar.gz
+      dest: /tmp/
+      group: apache
+      owner: apache
+      remote_src: yes
+    become: true
+    become_method: sudo
+
+  - name: Copy to html directory
+    command: /bin/bash -c 'mv /tmp/wordpress/* /var/www/html'
+    become: true
+    become_method: sudo
+
+  - name: Create uploads directory
+    file: 
+      path: /var/www/html/wp-content/uploads
+      state: directory
+    become: true
+    become_method: sudo
+
+  - name: Configure Wordpress
+    template:
+      src: templates/wp-config.j2
+      dest: /var/www/html/wp-config.php
+    become: true
+    become_method: sudo
+
+  - name: Configure Apache permissions
+    file:
+      path: /var/www/html/
+      owner: apache
+      group: apache
+      state: directory
+      recurse: yes
+    become: true
+    become_method: sudo
+
+  - name: Start Apache
+    service:
+      name: httpd
+      state: started
+      enabled: yes
+    become: true
+    become_method: sudo
+
+  - name: Change SELinux security contexts
+    command: /bin/bash -c 'restorecon -r /var/www/html'
+    become: true
+    become_method: sudo
+    ignore_errors: yes
+
+  - name: Reboot for SELinux
+    command: /usr/sbin/reboot
+    become: true
+    become_method: sudo
+    ignore_errors: yes
+
+  handlers:
+    - name: reloadFirewalld
+      service: name=firewalld state=reloaded
+      become: true
+      become_method: sudo
