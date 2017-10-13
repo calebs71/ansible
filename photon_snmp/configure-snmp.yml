@@ -6,6 +6,14 @@
 
   tasks:
 
+  - name: Get remote system's hostname
+    command: bash -c "echo $HOSTNAME"
+    register: rHostname
+
+  - name: Set fact for remote hostname
+    set_fact:
+      r_Hostname: "{{ rHostname.stdout }}"
+
   - name: Check if net-snmp is already installed
     command: /usr/bin/rpm -q --queryformat %{NAME} net-snmp
     register: verifyNetSnmp
