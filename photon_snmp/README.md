@@ -23,5 +23,5 @@ Note: This playbook will not change the SNMP User if the passwords don't match. 
 
 Example:
 ```
-ansible-playbook configure-snmp.yml -u root -k --extra-vars "sysLocation=us01 sysContact=caleb@lottabytes.com sysName=photontest authPass=1b3d5f7h privPass=1b3d5f7h snmpUser=zenoss"
+ansible-playbook configure-snmp.yml -u root -k --extra-vars "sysLocation=us01 sysContact=caleb@lottabytes.com authPass=1b3d5f7h privPass=1b3d5f7h snmpUser=zenoss"
 ```
