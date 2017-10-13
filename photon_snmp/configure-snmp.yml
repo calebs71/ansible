@@ -1,0 +1,97 @@
+---
+- hosts: photonOS
+  vars:
+    snmp_Port: "{{ snmpPort | default(161)  }}"
+    snmp_Proto: "{{ snmpProto | default('udp') }}"
+
+  tasks:
+
+  - name: Check if net-snmp is already installed
+    command: /usr/bin/rpm -q --queryformat %{NAME} net-snmp
+    register: verifyNetSnmp
+    ignore_errors: yes
+    args:
+      warn: false
+
+  - name: Check if net-snmp-devel is already installed
+    command: /usr/bin/rpm -q --queryformat %{NAME} net-snmp-devel
+    register: verifyNetSnmpDevel
+    ignore_errors: yes
+    args:
+      warn: false
+
+  - name: Install net-snmp from repo
+    command: /bin/tdnf install -y net-snmp
+    when: verifyNetSnmp.stdout == "package net-snmp is not installed"
+
+  - name: Install net-snmp-devel from repo
+    command: /bin/tdnf install -y net-snmp-devel
+    when: verifyNetSnmpDevel.stdout == "package net-snmp-devel is not installed"
+
+  - name: Verify configuration directory exists
+    file:
+      path: /usr/etc/snmp/
+      owner: root
+      group: root
+      state: directory
+      recurse: yes
+
+  - name: Verify /etc configuration file (snmpd.conf) matches template
+    template:
+      src: templates/etc/snmpd.j2
+      dest: /usr/etc/snmp/snmpd.conf
+
+  - name: Initial start of snmpd
+    service:
+      name: snmpd
+      state: started
+      enabled: yes
+
+  - name: Stop snmpd to configure
+    service:
+      name: snmpd
+      state: stopped
+      enabled: yes
+
+  - name: Check existance of SNMP v3 user "{{ snmpUser }}"
+    command: /usr/bin/grep '{{ snmpUser }}' /usr/share/snmp/snmpd.conf
+    register: verifySnmpUser
+    ignore_errors: yes
+
+  - name: Configure SNMP v3 user "{{ snmpUser }}"
+    command: /usr/bin/net-snmp-create-v3-user -ro -A {{ authPass }} -X {{ privPass }} -a {{  authType | default('SHA') }} -x {{ privType | default('AES') }} {{ snmpUser }}
+    when: verifySnmpUser.stdout == "" or  verifySnmpUser.stderr != ""
+
+  - name: Verify SNMP access is allowed in iptables
+    command: bash -c "/usr/sbin/iptables -L | /usr/bin/grep snmp"
+    register: verifyIptablesLive
+    ignore_errors: yes
+
+  - name: Verify iptables setting is saved
+    command: /usr/bin/grep dport=161 /etc/systemd/scripts/iptables
+    register: verifyIptablesFile
+    ignore_errors: yes
+
+  - name: Configure iptables
+    command: /usr/sbin/iptables -A INPUT -p {{ snmp_Proto }} --dport={{ snmp_Port }} -j ACCEPT
+    when: verifyIptablesLive.stdout == ""
+
+  - name: Save SNMP access in iptables - comment line
+    lineinfile:
+      path: /etc/systemd/scripts/iptables
+      line: '# Allow SNMP'
+      insertbefore: '# End /etc/systemd/scripts/iptables'
+    when: verifyIptablesFile.stdout == ""
+
+  - name: Save SNMP access iptables - rule
+    lineinfile:
+      path: /etc/systemd/scripts/iptables
+      line: "iptables -A INPUT -p {{ snmp_Proto }} --dport={{ snmp_Port }} -j ACCEPT"
+      insertafter: '# Allow SNMP'
+    when: verifyIptablesFile.stdout == ""
+
+  - name: Enable and start snmpd
+    service:
+      name: snmpd
+      state: started
+      enabled: yes

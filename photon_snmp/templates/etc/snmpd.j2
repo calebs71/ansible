@@ -1,0 +1,53 @@
+################################################################################
+# AGENT BEHAVIOUR
+
+agentaddress udp:161
+
+################################################################################
+# ACCESS CONTROL
+
+# ------------------------------------------------------------------------------
+# Traditional Access Control
+rocommunity public 127.0.0.1
+
+# ------------------------------------------------------------------------------
+# VACM Configuration
+#       sec.name       source        community
+
+#       groupName            securityModel securityName
+
+#       name          incl/excl  subtree             mask(optional)
+
+#       group    context sec.model sec.level prefix   read   write   notif
+
+
+# ------------------------------------------------------------------------------
+# Typed-View Configuration
+
+################################################################################
+# SYSTEM INFORMATION
+
+# ------------------------------------------------------------------------------
+# System Group
+sysLocation {{ sysLocation }}
+sysContact {{ sysContact }}
+sysServices 72
+sysName {{ sysName }}
+
+################################################################################
+# EXTENDING AGENT FUNCTIONALITY
+
+
+###############################################################################
+## Logging
+##
+
+## We do not want annoying "Connection from UDP: " messages in syslog.
+## If the following option is set to 'no', snmpd will print each incoming
+## connection, which can be useful for debugging.
+
+dontLogTCPWrappersConnects yes
+
+################################################################################
+# OTHER CONFIGURATION
+
