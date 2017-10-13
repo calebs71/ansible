@@ -1,4 +1,4 @@
-#Install and configures net-smnp on PhotonOS
+# Install and configure SNMP on PhotonOS
 
 Runsafe (can be run as many times as desired without negative consequences) playbook that installs and configures net-snmp and creates a SNMP v3 read-only user for monitoring.
 
