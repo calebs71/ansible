@@ -32,7 +32,7 @@ rocommunity public 127.0.0.1
 sysLocation {{ sysLocation }}
 sysContact {{ sysContact }}
 sysServices 72
-sysName {{ sysName }}
+sysName {{ lookup('env','HOSTNAME') }}
 
 ################################################################################
 # EXTENDING AGENT FUNCTIONALITY

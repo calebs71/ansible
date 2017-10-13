@@ -5,7 +5,6 @@ Runsafe (can be run as many times as desired without negative consequences) play
 Following variables are used for SNMP configuration with examples:
 * sysLocation - US01
 * sysContact - user@domain.com
-* sysName - myhostname
 
 The following values are optional:
 * snmpProto - Defaults to udp, can be over-ridden to tcp
