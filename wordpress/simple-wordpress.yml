@@ -17,6 +17,14 @@
       persistent: yes
     become: true
     become_method: sudo
+ 
+  - name: Configure SELinux for httpd_unified (Wordpress upgrades)
+    seboolean:
+      name: httpd_unified
+      state: yes
+      persistent: yes
+    become: true
+    become_method: sudo
 
   - firewalld:
       zone: dmz
